@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match Game</title>
+  <style>
+    /* CSS Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .landing-page {
+      text-align: center;
+    }
+
+    .category-buttons button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .category-buttons button:hover {
+      background-color: #45a049;
+    }
+
+    .game-container {
+      text-align: center;
+    }
+
+    .game-header {
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      background-color: #333;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+
+    .card.flipped {
+      background-color: #555;
+      transform: rotateY(180deg);
+    }
+
+    .card.matched {
+      background-color: green;
+      cursor: default;
+    }
+
+    .game-over {
+      margin-top: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .cards-grid {
+        grid-template-columns: repeat(3, 80px);
+      }
+
+      .card {
+        width: 80px;
+        height: 80px;
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- HTML Structure -->
+  <div class="landing-page">
+    <h1>Memory Match Game</h1>
+    <div class="category-buttons">
+      <button onclick="startGame('fruits')">Fruits</button>
+      <button onclick="startGame('emojis')">Emojis</button>
+      <button onclick="startGame('animals')">Animals</button>
+      <button onclick="startGame('planets')">Planets</button>
+      <button onclick="startGame('flags')">Flags</button>
+    </div>
+  </div>
+
+  <div class="game-container hidden">
+    <div class="game-header">
+      <p>Time Left: <span id="timer">30</span>s</p>
+      <p>Score: <span id="score">0</span></p>
+    </div>
+    <div class="cards-grid"></div>
+    <div class="game-over hidden">
+      <h2>Game Over!</h2>
+      <p>Your final score: <span id="final-score">0</span></p>
+      <button onclick="resetGame()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    // JavaScript Logic
+    const categories = {
+      fruits: ['🍎', '🍌', '🍇', '🍊', '🍓', '🍍', '🥭', '🍒'],
+      emojis: ['😀', '😎', '🤩', '😍', '🥳', '😜', '🤔', '😇'],
+      animals: ['🐶', '🐱', '🐼', '🦁', '🐧', '🐘', '🦄', '🐨'],
+      planets: ['🌍', '🌕', '🌞', '🪐', '🌌', '🌠', '🌑', '🌙'],
+      flags: ['🇺🇸', '🇬🇧', '🇨🇦', '🇯🇵', '🇫🇷', '🇩🇪', '🇮🇳', '🇧🇷']
+    };
+
+    let selectedCards = [];
+    let matchedPairs = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 30;
+
+    // Start the game
+    function startGame(category) {
+      document.querySelector('.landing-page').classList.add('hidden');
+      document.querySelector('.game-container').classList.remove('hidden');
+      document.querySelector('.game-over').classList.add('hidden');
+
+      const cards = [...categories[category], ...categories[category]];
+      shuffleArray(cards);
+      renderCards(cards);
+
+      matchedPairs = 0;
+      score = 0;
+      timeLeft = 30;
+      updateScore();
+      startTimer();
+    }
+
+    // Render cards on the grid
+    function renderCards(cards) {
+      const cardsGrid = document.querySelector('.cards-grid');
+      cardsGrid.innerHTML = '';
+      cards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.classList.add('card');
+        cardElement.dataset.index = index;
+        cardElement.textContent = card;
+        cardElement.addEventListener('click', handleCardClick);
+        cardsGrid.appendChild(cardElement);
+      });
+    }
+
+    // Handle card click
+    function handleCardClick(event) {
+      const card = event.target;
+      if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+      card.classList.add('flipped');
+      selectedCards.push(card);
+
+      if (selectedCards.length === 2) {
+        setTimeout(checkMatch, 1000);
+      }
+    }
+
+    // Check if two cards match
+    function checkMatch() {
+      const [card1, card2] = selectedCards;
+      if (card1.textContent === card2.textContent) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        matchedPairs++;
+        score += 10;
+        updateScore();
+        if (matchedPairs === 8) {
+          endGame(true);
+        }
+      } else {
+        card1.classList.remove('flipped');
+        card2.classList.remove('flipped');
+      }
+      selectedCards = [];
+    }
+
+    // Update the score
+    function updateScore() {
+      document.getElementById('score').textContent = score;
+    }
+
+    // Start the countdown timer
+    function startTimer() {
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft === 0) {
+          endGame(false);
+        }
+      }, 1000);
+    }
+
+    // End the game
+    function endGame(isWin) {
+      clearInterval(timer);
+      document.querySelector('.game-over').classList.remove('hidden');
+      document.getElementById('final-score').textContent = score;
+      if (isWin) {
+        alert('You won!');
+      } else {
+        alert('Time is up!');
+      }
+    }
+
+    // Reset the game
+    function resetGame() {
+      document.querySelector('.game-container').classList.add('hidden');
+      document.querySelector('.landing-page').classList.remove('hidden');
+    }
+
+    // Shuffle the cards array
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+  </script>
+</body>
+</html>
